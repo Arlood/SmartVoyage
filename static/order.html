@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartVoyage - 保险购买</title>
+    <style>
+        :root {
+            --primary: #0891B2;
+            --primary-light: #ECFEFF;
+            --primary-hover: #0E7490;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --bg-body: #f1f5f9;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f8fafc;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            background: var(--bg-surface);
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0891B2, #06B6D4);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+        }
+        .header h1 { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+        .header .order-label { font-size: 13px; color: var(--text-tertiary); }
+        .header a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 13px;
+            margin-left: auto;
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .header a:hover { background: var(--primary-light); border-color: var(--primary); }
+        .container {
+            flex: 1;
+            max-width: 600px;
+            width: 100%;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        /* ========== 产品信息卡片 ========== */
+        .product-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid #0891B2;
+        }
+        .product-card h2 {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .product-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--primary-light);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 500;
+            margin-bottom: 14px;
+        }
+        .product-price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .product-price {
+            font-size: 28px;
+            color: var(--success);
+            font-weight: 700;
+        }
+        .product-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ========== 用户信息卡片 ========== */
+        .user-info-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .user-info-card .user-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .user-info-card strong { color: var(--primary); }
+
+        /* ========== 下单表单 ========== */
+        .order-form {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .order-form h3 {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .form-group label .required { color: var(--danger); margin-left: 2px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input::placeholder { color: var(--text-tertiary); }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(8,145,178,0.08);
+            background: var(--bg-surface);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* ========== 合计栏 ========== */
+        .total-bar {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            margin: 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-bar .total-label { font-size: 14px; color: var(--text-secondary); }
+        .total-bar .total-amount {
+            font-size: 22px;
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 13px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: linear-gradient(135deg, #0891B2, #06B6D4);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .submit-btn:hover { opacity: 0.92; }
+        .submit-btn:active { transform: scale(0.98); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ========== 成功页 ========== */
+        .success-box {
+            background: var(--bg-surface);
+            border: 2px solid var(--success);
+            border-radius: var(--radius);
+            padding: 40px 32px;
+            text-align: center;
+            display: none;
+            box-shadow: var(--shadow);
+        }
+        .success-box .check {
+            width: 64px;
+            height: 64px;
+            background: #ecfdf5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: var(--success);
+            margin: 0 auto 16px;
+        }
+        .success-box h3 { color: var(--success); font-size: 20px; margin-bottom: 10px; font-weight: 700; }
+        .success-box p { color: var(--text-tertiary); font-size: 14px; line-height: 1.6; }
+        .success-box .order-id { font-size: 16px; color: var(--text-primary); font-weight: 600; margin: 12px 0; }
+        .success-box a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .success-box a:hover { text-decoration: underline; }
+
+        .footer {
+            background: var(--bg-surface);
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-icon">✈</div>
+        <h1>SmartVoyage</h1>
+        <span class="order-label">保险购买</span>
+        <a href="/" id="backToChat">← 返回对话</a>
+    </div>
+
+    <div class="container">
+        <!-- 产品信息 -->
+        <div class="product-card" id="productCard">
+            <h2 id="productName">保险产品名称</h2>
+            <div class="product-tag" id="productTag">🛡️ 旅行保险</div>
+            <div class="product-price-row">
+                <div class="product-price" id="productPrice">¥0</div>
+                <div style="font-size: 13px; color: var(--text-tertiary);">/ 份</div>
+            </div>
+            <div class="product-desc" id="productDesc">保险保障说明</div>
+        </div>
+
+        <!-- 登录用户信息 -->
+        <div class="user-info-card" id="userInfoCard">
+            <div class="user-icon">👤</div>
+            <span>当前登录账户：<strong id="displayUsername">—</strong></span>
+        </div>
+
+        <!-- 下单表单 -->
+        <div class="order-form" id="orderForm">
+            <h3>填写投保人信息</h3>
+
+            <div class="form-group">
+                <label>投保人姓名 <span class="required">*</span></label>
+                <input type="text" id="userName" placeholder="请输入真实姓名">
+            </div>
+            <div class="form-group">
+                <label>手机号码 <span class="required">*</span></label>
+                <input type="tel" id="userPhone" placeholder="请输入手机号码" maxlength="11">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>出行人关系 <span class="required">*</span></label>
+                    <select id="relation">
+                        <option value="self">本人</option>
+                        <option value="spouse">配偶</option>
+                        <option value="parent">父母</option>
+                        <option value="child">子女</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>出行日期 <span class="required">*</span></label>
+                    <input type="date" id="travelDate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>购买份数 <span class="required">*</span></label>
+                <input type="number" id="quantity" value="1" min="1" max="10">
+            </div>
+
+            <div class="total-bar">
+                <div class="total-label" id="totalLabel">1 份 × ¥0</div>
+                <div class="total-amount" id="totalAmount">¥0</div>
+            </div>
+
+            <button class="submit-btn" id="submitBtn" onclick="submitOrder()">确认投保</button>
+        </div>
+
+        <!-- 成功提示 -->
+        <div class="success-box" id="successBox">
+            <div class="check">✓</div>
+            <h3>投保成功！</h3>
+            <div class="order-id" id="orderId">保单号：—</div>
+            <p>保险订单已生效，电子保单将发送至您的手机。</p>
+            <p>出行前请注意核对保障范围和生效日期。</p>
+            <p style="margin-top: 16px;"><a href="/">← 返回对话</a></p>
+        </div>
+    </div>
+
+    <div class="footer">Powered by 黑马程序员 | SmartVoyage 智慧旅游助手 v8.0</div>
+
+    <script>
+        // ========== URL 参数解析 ==========
+        const urlParams = new URLSearchParams(window.location.search);
+        const productType = urlParams.get('type') || 'insurance';
+        const productName = urlParams.get('name') || '旅行保险产品';
+        const unitPrice = urlParams.get('price') || urlParams.get('unit_price') || '¥0';
+        const quantity = parseInt(urlParams.get('quantity') || '1');
+        const productDesc = urlParams.get('desc') || '为您出行提供全面保障，覆盖意外伤害、医疗、财产损失等。';
+        const username = urlParams.get('username') || '';
+
+        // 提取价格中的数字
+        const priceNum = parseFloat(unitPrice.replace(/[^\d.]/g, '')) || 0;
+
+        // ========== 渲染产品信息 ==========
+        document.getElementById('productName').textContent = decodeURIComponent(productName);
+        document.getElementById('productPrice').textContent = unitPrice;
+        document.getElementById('productDesc').textContent = decodeURIComponent(productDesc);
+
+        // ========== 用户信息 ==========
+        const displayName = username ? decodeURIComponent(username) : '';
+        document.getElementById('displayUsername').textContent = displayName || '未登录';
+        if (displayName) {
+            document.getElementById('userName').value = displayName;
+        }
+
+        // ========== 设置默认日期和份数 ==========
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('travelDate').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('quantity').value = quantity;
+
+        // ========== 合计计算 ==========
+        function updateTotal() {
+            const qty = parseInt(document.getElementById('quantity').value) || 1;
+            const total = priceNum * qty;
+            document.getElementById('totalLabel').textContent = `${qty} 份 × ${unitPrice}`;
+            document.getElementById('totalAmount').textContent = `¥${total.toFixed(0)}`;
+        }
+
+        document.getElementById('quantity').addEventListener('input', updateTotal);
+        updateTotal();
+
+        // ========== 提交订单 ==========
+        function submitOrder() {
+            const name = document.getElementById('userName').value.trim();
+            const phone = document.getElementById('userPhone').value.trim();
+            const date = document.getElementById('travelDate').value;
+
+            if (!name) { alert('请输入投保人姓名'); return; }
+            if (!phone || !/^1\d{10}$/.test(phone)) { alert('请输入有效的11位手机号码'); return; }
+            if (!date) { alert('请选择出行日期'); return; }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            // 生成保单号
+            const now = new Date();
+            const dateStr = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0');
+            const rand = String(Math.floor(Math.random() * 9000) + 1000);
+            const orderId = `INS-${dateStr}-${rand}`;
+
+            setTimeout(() => {
+                document.getElementById('orderForm').style.display = 'none';
+                document.getElementById('productCard').style.display = 'none';
+                document.getElementById('userInfoCard').style.display = 'none';
+                document.getElementById('orderId').textContent = `保单号：${orderId}`;
+                document.getElementById('successBox').style.display = 'block';
+            }, 800);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+env
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# 文档/教案/构建产物
+教案/
+html讲义/
+01-lesson-demo/
+agent_learn/
+*.md
+!requirements*.txt
+
+# 日志
+logs/
+*.log
+nohup.out
+
+# 环境配置（使用 .env 注入，不打包进镜像）
+.env
+config.local.yaml

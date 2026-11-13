@@ -1,0 +1,193 @@
+services:
+  # ============================================================
+  # MySQL 数据库（SmartVoyage 使用）
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: travel_rag
+      # 创建业务账号 smart_voyage（与本地开发统一）；MYSQL_USER 会自动授予 travel_rag 库权限
+      MYSQL_USER: ${DB_USER:-smart_voyage}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-123456}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sql/create_all_tables.sql:/docker-entrypoint-initdb.d/01_create_tables.sql
+      # 同时初始化商业 MCP 的数据库（共用同一个 MySQL 实例）
+      - ../物料/sql/init_business.sql:/docker-entrypoint-initdb.d/02_business_mcp.sql
+      # 授予 smart_voyage 对 business_mcp 库的权限，并重新确认 travel_rag 权限（01 脚本 DROP 过库）
+      - ./sql/grant_business_mcp.sql:/docker-entrypoint-initdb.d/03_grant.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ============================================================
+  # Elasticsearch（保险/旅游团中文分词搜索）
+  # ============================================================
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ============================================================
+  # 商业 MCP 服务（端口 8005）— 租车/保险/旅游团
+  # ============================================================
+  business-mcp:
+    build: ../物料
+    container_name: business-mcp
+    ports:
+      - "8005:8005"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-smart_voyage}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_NAME: business_mcp
+      ES_HOST: es
+      ES_PORT: 9200
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8005
+    depends_on:
+      mysql:
+        condition: service_healthy
+      es:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================
+  # 统一外部 MCP 服务器（端口 8002）
+  # ============================================================
+  external-mcp:
+    build: .
+    container_name: external-mcp
+    command: ["mcp"]
+    ports:
+      - "8002:8002"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      HEFENG_API_KEY: ${HEFENG_API_KEY:-}
+      AMAP_API_KEY: ${AMAP_API_KEY:-}
+      BOCHA_API_KEY: ${BOCHA_API_KEY:-}
+      VARIFLIGHT_API_KEY: ${VARIFLIGHT_API_KEY:-}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-smart_voyage}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_NAME: travel_rag
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================
+  # 天气 A2A 服务器（端口 5005）
+  # ============================================================
+  weather-a2a:
+    build: .
+    container_name: weather-a2a
+    command: ["weather"]
+    ports:
+      - "5005:5005"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EXTERNAL_MCP_URL: http://external-mcp:8002/mcp
+      A2A_HOST: 0.0.0.0
+      WEATHER_PORT: 5005
+    depends_on:
+      - external-mcp
+    restart: unless-stopped
+
+  # ============================================================
+  # 票务 A2A 服务器（端口 5006）
+  # ============================================================
+  ticket-a2a:
+    build: .
+    container_name: ticket-a2a
+    command: ["ticket"]
+    ports:
+      - "5006:5006"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EXTERNAL_MCP_URL: http://external-mcp:8002/mcp
+      A2A_HOST: 0.0.0.0
+      TICKET_PORT: 5006
+    depends_on:
+      - external-mcp
+    restart: unless-stopped
+
+  # ============================================================
+  # 行程 A2A 服务器（端口 5007）
+  # ============================================================
+  trip-a2a:
+    build: .
+    container_name: trip-a2a
+    command: ["trip"]
+    ports:
+      - "5007:5007"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EXTERNAL_MCP_URL: http://external-mcp:8002/mcp
+      BUSINESS_MCP_URL: http://business-mcp:8005/mcp
+      A2A_HOST: 0.0.0.0
+      TRIP_PORT: 5007
+    depends_on:
+      - external-mcp
+      - business-mcp
+    restart: unless-stopped
+
+  # ============================================================
+  # API 服务器（端口 8080，Web 客户端入口）
+  # ============================================================
+  api-server:
+    build: .
+    container_name: api-server
+    command: ["api"]
+    ports:
+      - "8080:8080"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      WEATHER_A2A_URL: http://weather-a2a:5005
+      TICKET_A2A_URL: http://ticket-a2a:5006
+      TRIP_A2A_URL: http://trip-a2a:5007
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-smart_voyage}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_NAME: travel_rag
+      API_HOST: 0.0.0.0
+      API_PORT: 8080
+      # JWT 密钥：容器内可通过环境变量 JWT_SECRET 覆盖（默认值与 config.yaml 的 jwt.secret 一致，生产环境务必修改）
+      JWT_SECRET: ${JWT_SECRET:-smartvoyage-dev-secret-key-change-in-production}
+    depends_on:
+      - weather-a2a
+      - ticket-a2a
+      - trip-a2a
+    restart: unless-stopped
+
+volumes:
+  es_data:
+    driver: local
